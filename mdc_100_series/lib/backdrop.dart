@@ -19,6 +19,7 @@ import 'model/product.dart';
 import 'login.dart';
 
 const double _kFlingVelocity = 2.0;
+const int SIGN_OUT = 0;
 
 class _FrontLayer extends StatelessWidget {
   const _FrontLayer({
@@ -222,8 +223,7 @@ class _BackdropState extends State<Backdrop>
     final double layerTop = layerSize.height - layerTitleHeight;
 
     Animation<RelativeRect> layerAnimation = RelativeRectTween(
-      begin: RelativeRect.fromLTRB(
-          0.0, layerTop, 0.0, layerTop - layerSize.height),
+      begin: RelativeRect.fromLTRB(0.0, layerTop, 0.0, -layerTop),
       end: RelativeRect.fromLTRB(0.0, 0.0, 0.0, 0.0),
     ).animate(_controller.view);
 
@@ -258,29 +258,22 @@ class _BackdropState extends State<Backdrop>
         backTitle: widget.backTitle,
       ),
       actions: <Widget>[
-        new IconButton(
+        IconButton(
           icon: Icon(
             Icons.search,
             semanticLabel: 'login',
           ),
           onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (BuildContext context) => LoginPage()),
-            );
+            showSearch(context: context, delegate: ProductSearchDelegate());
           },
         ),
-        new IconButton(
-          icon: Icon(
-            Icons.tune,
-            semanticLabel: 'login',
-          ),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (BuildContext context) => LoginPage()),
-            );
-          },
+        PopupMenuButton(
+          itemBuilder: (BuildContext context) => <PopupMenuItem<int>>[
+            PopupMenuItem<int>(
+              value: SIGN_OUT,
+              child: Text('Sign out'),
+            ),
+          ],
         ),
       ],
     );
@@ -291,4 +284,51 @@ class _BackdropState extends State<Backdrop>
       ),
     );
   }
+}
+
+class ProductSearchDelegate extends SearchDelegate {
+  @override
+  List<Widget> buildActions(BuildContext context) => <Widget>[
+    IconButton(
+      icon: Icon(Icons.clear, semanticLabel: 'clear',),
+      onPressed: () {
+        query = '';
+        showSuggestions(context);
+      },
+    ),
+  ];
+
+  @override
+  Widget buildLeading(BuildContext context) => IconButton(
+    icon: Icon(Icons.arrow_back, semanticLabel: 'back',),
+    onPressed: () => close(context, null),
+  );
+
+  @override
+  Widget buildResults(BuildContext context) {
+    return Center(
+      child: Text('You typed $query'),
+    );
+  }
+
+  @override
+  Widget buildSuggestions(BuildContext context) {
+    final List<String> suggestions = query.isEmpty ? [] : [
+      '${query}s',
+      '$query alternatives',
+    ];
+    return ListView(
+      children: ListTile.divideTiles(
+        context: context,
+        tiles: suggestions.map((String suggestion) => ListTile(
+          title: Text(suggestion),
+          onTap: () {
+            query = suggestion;
+            showResults(context);
+          },
+        )),
+      ).toList(),
+    );
+  }
+
 }
