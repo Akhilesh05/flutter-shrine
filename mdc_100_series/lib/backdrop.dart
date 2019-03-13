@@ -268,6 +268,17 @@ class _BackdropState extends State<Backdrop>
           },
         ),
         PopupMenuButton(
+          onSelected: (int selected) {
+            switch (selected) {
+              case SIGN_OUT:
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => LoginPage()),
+                );
+                break;
+              default:
+            }
+          },
           itemBuilder: (BuildContext context) => <PopupMenuItem<int>>[
             PopupMenuItem<int>(
               value: SIGN_OUT,
