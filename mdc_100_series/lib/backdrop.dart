@@ -19,7 +19,8 @@ import 'model/product.dart';
 import 'login.dart';
 
 const double _kFlingVelocity = 2.0;
-const int SIGN_OUT = 0;
+
+enum MenuItem { signOut, settings }
 
 class _FrontLayer extends StatelessWidget {
   const _FrontLayer({
@@ -174,10 +175,10 @@ class Backdrop extends StatefulWidget {
   _BackdropState createState() => _BackdropState();
 }
 
-class _BackdropState extends State<Backdrop>
-    with SingleTickerProviderStateMixin {
+class _BackdropState extends State<Backdrop> with SingleTickerProviderStateMixin {
   final GlobalKey _backdropKey = GlobalKey(debugLabel: 'Backdrop');
   AnimationController _controller;
+  bool darkMode = false, stayLoggedIn = true;
 
   @override
   void initState() {
@@ -268,21 +269,47 @@ class _BackdropState extends State<Backdrop>
           },
         ),
         PopupMenuButton(
-          onSelected: (int selected) {
+          onSelected: (MenuItem selected) {
             switch (selected) {
-              case SIGN_OUT:
+              case MenuItem.signOut:
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => LoginPage()),
                 );
                 break;
+              case MenuItem.settings:
+                showModalBottomSheet<void>(
+                  context: context,
+                  builder: (context) => Settings(
+                    darkMode: darkMode,
+                    stayLoggedIn: stayLoggedIn,
+                    onChange: (Map<String, Object> changes) => setState(() {
+                      if (changes.containsKey(Settings.DARK_MODE)) {
+                        darkMode = changes[Settings.DARK_MODE];
+                      } else if (changes.containsKey(Settings.STAY_LOGGED_IN)) {
+                        stayLoggedIn = changes[Settings.STAY_LOGGED_IN];
+                      }
+                    }),
+                  ),
+                );
+                break;
               default:
             }
           },
-          itemBuilder: (BuildContext context) => <PopupMenuItem<int>>[
-            PopupMenuItem<int>(
-              value: SIGN_OUT,
-              child: Text('Sign out'),
+          itemBuilder: (BuildContext context) => <PopupMenuItem<MenuItem>>[
+            PopupMenuItem(
+              value: MenuItem.settings,
+              child: LeadingIcon(
+                icon: Icon(Icons.settings, semanticLabel: 'settings',),
+                child: Text('Settings'),
+              ),
+            ),
+            PopupMenuItem(
+              value: MenuItem.signOut,
+              child: LeadingIcon(
+                icon: Icon(Icons.exit_to_app, semanticLabel: 'log out',),
+                child: Text('Log out'),
+              ),
             ),
           ],
         ),
@@ -295,6 +322,97 @@ class _BackdropState extends State<Backdrop>
       ),
     );
   }
+}
+
+class LeadingIcon extends StatelessWidget {
+  final Widget icon, child;
+
+  LeadingIcon({@required this.icon, @required this.child}) : assert(icon != null), assert(child != null);
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: <Widget>[
+      Container(child: icon, margin: EdgeInsets.only(right: 8),),
+      child,
+    ],
+  );
+}
+
+class Settings extends StatefulWidget {
+  final void Function(Map<String, Object>) onChange;
+  final bool darkMode, stayLoggedIn;
+  static const String DARK_MODE = 'Dark mode';
+  static const String STAY_LOGGED_IN = 'Stay logged in';
+
+  Settings({
+    @required this.darkMode,
+    @required this.stayLoggedIn,
+    this.onChange,
+  }) : assert(darkMode != null), assert(stayLoggedIn != null);
+
+  @override
+  State<Settings> createState() => _Settings(darkMode, stayLoggedIn);
+}
+
+class _Settings extends State<Settings> {
+  bool _lDarkMode, _lStayLoggedIn;
+
+  _Settings(this._lDarkMode, this._lStayLoggedIn);
+
+  bool get _darkMode => _lDarkMode;
+  set _darkMode(bool value) {
+    widget.onChange({Settings.DARK_MODE: value});
+    setState(() {
+      _lDarkMode = value;
+    });
+  }
+
+  bool get _stayLoggedIn => _lStayLoggedIn;
+  set _stayLoggedIn(bool value) {
+    widget.onChange({Settings.STAY_LOGGED_IN: value});
+    setState(() {
+      _lStayLoggedIn = value;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => Column(
+    mainAxisSize: MainAxisSize.min,
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: <Widget>[
+      Container(
+        padding: EdgeInsets.all(16),
+        child: Text('Settings', style: Theme.of(context).textTheme.headline,),
+      ),
+      ListView(
+        physics: NeverScrollableScrollPhysics(),
+        shrinkWrap: true,
+        children: ListTile.divideTiles(
+          context: context,
+          tiles: <ListTile>[
+            ListTile(
+              title: Text(Settings.DARK_MODE),
+              onTap: () => _darkMode = !_darkMode,
+              trailing: Switch(
+                value: _darkMode,
+                onChanged: (bool value) => _darkMode = value,
+              ),
+            ),
+            ListTile(
+              title: Text(Settings.STAY_LOGGED_IN),
+              onTap: () => _stayLoggedIn = !_stayLoggedIn,
+              trailing: Switch(
+                value: _stayLoggedIn,
+                onChanged: (bool value) => _stayLoggedIn = value,
+              ),
+            ),
+          ]
+        ).toList(),
+      ),
+    ],
+  );
+
 }
 
 class ProductSearchDelegate extends SearchDelegate {
